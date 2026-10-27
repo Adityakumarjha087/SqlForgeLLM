@@ -18,6 +18,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from sqlforge.config import load_config
@@ -111,8 +112,6 @@ async def rate_limit(request: Request, call_next):
     if request.url.path.startswith(("/generate-sql", "/query")):
         client = request.client.host if request.client else "unknown"
         if not bucket.allow(client):
-            from fastapi.responses import JSONResponse
-
             return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
     return await call_next(request)
 

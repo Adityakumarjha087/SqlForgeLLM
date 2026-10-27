@@ -1,75 +1,113 @@
 # SQLForge
 
-**Teaching a 1.5B-parameter LLM to write correct SQL — with supervised fine-tuning, then
-reinforcement learning against real query execution (GRPO), on free-tier compute.**
+**Teaching a 1.5B-parameter LLM to write correct SQL — supervised fine-tuning, then
+reinforcement learning against real query execution (GRPO), all on free-tier compute.**
 
 Ask a question in plain English, get a SQLite query that actually runs and returns the
-right rows. Base model → SFT → GRPO, each step measured by execution accuracy on the
-Spider dev set.
+right rows. Every stage is measured by **execution accuracy** on the Spider dev set,
+through an eval harness built *before* any training.
 
-> 🚧 Work in progress — milestones below are checked off as they land.
+![demo](docs/assets/demo.gif)
+*(demo GIF placeholder — record with the mock backend: `docker compose up`, then
+http://localhost:3000)*
 
 ## Results
 
 | Model | Execution accuracy | Exact match |
 |---|---|---|
-| Qwen2.5-Coder-1.5B-Instruct (base) | – | – |
-| + SFT (QLoRA) | – | – |
-| + GRPO | – | – |
+| Qwen2.5-Coder-1.5B-Instruct (base) | _run notebook 01_ | – |
+| + SFT (QLoRA, 2 epochs) | _run notebook 02_ | – |
+| + GRPO (execution rewards) | _run notebook 03_ | – |
 
-*(Filled in as milestones 2–4 complete. Full details in [docs/results.md](docs/results.md).)*
+> Full table, per-category breakdowns and charts land in
+> [docs/results.md](docs/results.md) as the Colab runs complete. Local smoke test
+> (first 20 dev examples, MPS): base model 70% execution accuracy — the harness is
+> verified end to end; full-set numbers will be lower.
+
+![overall](docs/assets/overall_accuracy.png)
+![by category](docs/assets/accuracy_by_category.png)
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    A[Spider dataset] --> B[Data pipeline<br/>filter + format]
-    B --> C[SFT · QLoRA]
-    C --> D[GRPO · execution rewards]
-    D --> E[Eval harness<br/>execution accuracy]
-    E --> F[FastAPI<br/>vLLM / GGUF]
+    A[Spider dataset<br/>9.7k questions · 166 DBs] --> B[Data pipeline<br/>dedupe · parse · execute · leak guard]
+    B --> C[SFT · QLoRA<br/>completion-only loss]
+    C --> D[GRPO<br/>format + execution + correctness rewards]
+    B --> E[Eval harness<br/>safe executor · execution accuracy]
+    C --> E
+    D --> E
+    D --> F[FastAPI<br/>vLLM · transformers · Ollama GGUF]
     F --> G[Next.js UI]
+    E --> H[Error analysis<br/>per-SQL-feature accuracy]
 ```
 
-## Milestones
+**The core loop:** the same safe SQL executor (read-only, parse-validated,
+timeout-bounded) is the data-quality filter, the eval metric, the GRPO reward, and the
+serving sandbox. One component, four jobs, tested once.
 
-- [x] 0 — Project setup (uv, ruff, pytest, config loader, seeding)
-- [ ] 1 — Data pipeline (Spider download, prompt template, quality filters, leak-safe splits)
-- [ ] 2 — Eval harness + baseline (safe SQL executor, execution accuracy)
-- [ ] 3 — SFT with QLoRA on a free Colab T4
-- [ ] 4 — GRPO with unit-tested execution rewards
-- [ ] 5 — Error analysis (per-SQL-feature accuracy, charts)
-- [ ] 6 — Serving (FastAPI, vLLM/GGUF, Docker, latency benchmark)
-- [ ] 7 — Next.js frontend
-- [ ] 8 — Docs and polish
+## Reproduce it
 
-## Quick start
+Everything is scripted; GPU steps run on a **free Colab T4** via the thin notebooks in
+`notebooks/` (set `REPO_URL` in the first cell).
 
 ```bash
-# Requires uv (https://docs.astral.sh/uv/)
-uv sync
-uv run pytest
-uv run ruff check .
+# Local setup (uv: https://docs.astral.sh/uv/)
+uv sync                                     # light core (no torch)
+uv run pytest                               # 74 tests, all offline
+uv run python scripts/download_spider.py    # 205MB official spider_data.zip
+uv run python scripts/build_dataset.py      # filters + splits -> data/processed/
+
+# Eval smoke test on CPU/MPS (downloads the 1.5B model)
+uv sync --group ml
+uv run python scripts/run_eval.py --name smoke --limit 20 --batch-size 4
 ```
 
-Copy `.env.example` to `.env` and fill in tokens before any milestone that downloads
-models or logs to W&B.
+| Step | Where | How |
+|---|---|---|
+| 1. Baseline eval | Colab T4 | `notebooks/01_baseline_eval.ipynb` (~40 min) |
+| 2. SFT | Colab T4 | `notebooks/02_sft.ipynb` (~2 h, resumable) |
+| 3. GRPO | Colab T4 | `notebooks/03_grpo.ipynb` (2–3 sessions, resumable) |
+| 4. Error analysis | anywhere | `scripts/analyze_errors.py base=... sft=... grpo=...` |
+| 5. Serve + UI | anywhere | `docker compose up` (mock backend by default) |
+| 6. Latency bench | anywhere | `scripts/benchmark_latency.py --log-results` |
+
+To serve the real model locally on CPU: `scripts/merge_adapter.py`, convert to GGUF
+Q8_0 with llama.cpp, `ollama create sqlforge`, then `SQLFORGE_BACKEND=ollama` — the
+full recipe is in [docs/decisions.md](docs/decisions.md).
 
 ## Repo layout
 
 ```
-configs/        yaml configs per stage
-src/sqlforge/   package: config, seeding, data, eval, serving
-training/       sft.py, grpo.py, rewards.py
-scripts/        dataset download, eval runner, benchmarks
-notebooks/      thin Colab wrappers around the scripts
-tests/          pytest with tiny offline fixtures
-docs/           decisions.md, results.md, failures.md, charts
-web/            Next.js frontend
+configs/        yaml per stage (data, sft, grpo, serve) — SQLFORGE_* env overrides
+src/sqlforge/   config, seeding, safe executor, data pipeline, eval, analysis, serving
+training/       sft.py, grpo.py, rewards.py (unit-tested reward components)
+scripts/        download, build_dataset, run_eval, analyze_errors, inspect_outputs,
+                merge_adapter, benchmark_latency
+notebooks/      thin Colab wrappers (01 baseline, 02 SFT, 03 GRPO)
+tests/          74 offline tests with tiny fixtures
+docs/           decisions.md · results.md · failures.md · grpo-explained.md · assets/
+web/            Next.js + TypeScript frontend
 ```
 
-## Docs
+## Design docs
 
-- [Decisions](docs/decisions.md) — why each non-obvious choice was made
-- [Results](docs/results.md) — all metrics, appended chronologically
-- [Failures](docs/failures.md) — what went wrong, including reward hacking finds
+- [docs/decisions.md](docs/decisions.md) — every non-obvious choice, with alternatives
+- [docs/grpo-explained.md](docs/grpo-explained.md) — GRPO vs PPO vs DPO, and the catch
+- [docs/results.md](docs/results.md) — append-only metrics log
+- [docs/failures.md](docs/failures.md) — what broke, incl. reward-hacking inspection
+- [docs/interview-qa.md](docs/interview-qa.md) — 10 questions this project should
+  prepare you to answer
+
+## Limitations and future work
+
+- **Execution accuracy has false positives**: a wrong query can return the right rows
+  on a particular database state (e.g. missing ORDER BY on already-sorted data). Fix:
+  test-suite evaluation over multiple database variants (Zhong et al.).
+- **Single-dialect**: SQLite only. Spider 2.0 / BIRD (messier schemas, external
+  knowledge) are the natural next benchmark.
+- **Full-schema prompts**: no schema linking; very large schemas fall back to a lossy
+  compact format. A retrieval step over tables would scale past Spider-sized DBs.
+- **GRPO scale**: 2000 prompts × 8 samples on one T4; more prompts, larger groups, or
+  a 7B base would likely widen the RL gain.
+- **Rate limiting is in-memory per process** — swap for Redis behind a real LB.

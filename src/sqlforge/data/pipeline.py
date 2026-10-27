@@ -18,7 +18,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from sqlforge.data.schema import extract_schema
-from sqlforge.execution import execute_sql
+from sqlforge.execution import execute_sql, validate_select_only
 
 
 @dataclass
@@ -70,8 +70,6 @@ def dedupe(examples: list[Example], dropped: Counter) -> list[Example]:
 
 
 def filter_parses(examples: list[Example], dropped: Counter) -> list[Example]:
-    from sqlforge.execution import validate_select_only
-
     kept = []
     for ex in examples:
         if validate_select_only(ex.query) is None:
