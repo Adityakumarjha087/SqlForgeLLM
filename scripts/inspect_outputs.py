@@ -45,9 +45,7 @@ def main() -> None:
     parser.add_argument("--eval-json", required=True)
     parser.add_argument("--n", type=int, default=30)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument(
-        "--db-root", default=str(REPO_ROOT / "data/raw/spider_data/database")
-    )
+    parser.add_argument("--db-root", default=str(REPO_ROOT / "data/raw/spider_data/database"))
     args = parser.parse_args()
 
     data = json.loads(Path(args.eval_json).read_text())
@@ -67,8 +65,10 @@ def main() -> None:
         n_flagged += bool(flags)
         status = "PASS" if record["execution_match"] else "fail"
         header = f"{i:02d}. [{status}] {' '.join(f'⚠ {f}' for f in flags)}".rstrip()
-        print(f"\n{header}\n  Q:    {record['question']}\n  gold: {record['gold']}\n"
-              f"  pred: {record['pred']}")
+        print(
+            f"\n{header}\n  Q:    {record['question']}\n  gold: {record['gold']}\n"
+            f"  pred: {record['pred']}"
+        )
         if flags:
             lines += [
                 f"- **{' + '.join(flags)}** — {record['db_id']}: “{record['question']}”",
@@ -76,8 +76,9 @@ def main() -> None:
                 f"  - pred: `{record['pred']}`",
                 "  - verdict: _(fill in after manual review)_",
             ]
-    lines.append(f"\n{n_flagged}/{len(sample)} samples auto-flagged; "
-                 "unflagged passes looked clean.\n")
+    lines.append(
+        f"\n{n_flagged}/{len(sample)} samples auto-flagged; unflagged passes looked clean.\n"
+    )
 
     failures = REPO_ROOT / "docs" / "failures.md"
     failures.write_text(failures.read_text() + "\n".join(lines))
