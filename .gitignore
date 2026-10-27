@@ -1,0 +1,28 @@
+# Data and model artifacts (large, reproducible via scripts)
+# data/** + unignored dirs lets git keep the .gitkeep structure markers
+data/**
+!data/**/
+!data/**/.gitkeep
+outputs/
+*.gguf
+*.safetensors
+wandb/
+
+# Environments and secrets
+.env
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
