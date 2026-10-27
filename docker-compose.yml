@@ -1,0 +1,27 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      # mock = no model download; set to `transformers` (+ adapter) or `ollama`
+      # for real generation. See configs/serve.yaml for all options.
+      SQLFORGE_BACKEND: ${SQLFORGE_BACKEND:-mock}
+      SQLFORGE_ADAPTER: ${SQLFORGE_ADAPTER:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: ./web
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    depends_on:
+      api:
+        condition: service_healthy

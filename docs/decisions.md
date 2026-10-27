@@ -148,3 +148,36 @@ per-step cost is dominated by generation (8 samples/prompt) and reward evaluatio
 (2 SQLite executions/sample, bounded by the 5s timeout). ~500 optimizer steps fits
 in 2-3 free sessions with checkpoint resume. See docs/grpo-explained.md for the
 GRPO vs PPO vs DPO background.
+
+## 2026-10-27 — Milestone 6 (serving)
+
+### Backend abstraction: vLLM / transformers / Ollama / mock behind one protocol
+
+vLLM where there's a GPU (continuous batching, 10x+ throughput); plain transformers
+anywhere torch runs; Ollama for a laptop-friendly CPU demo; a deterministic mock so
+API tests and frontend development never need a model. Chosen per deployment via
+`SQLFORGE_BACKEND`, so the same image serves all roles.
+
+### LoRA merge + GGUF path (for the CPU/Ollama backend)
+
+1. `scripts/merge_adapter.py` folds the LoRA delta into the base weights
+   (W' = W + (alpha/r)·BA) — GGUF tooling consumes full checkpoints, not adapters.
+2. llama.cpp `convert_hf_to_gguf.py` -> fp16 GGUF; `llama-quantize` -> Q8_0.
+   **Q8_0, not Q4_K_M:** a 1.5B model is disproportionately damaged by 4-bit
+   post-training quantization, and at 1.6GB the Q8 file is still trivially laptop-sized.
+3. `ollama create sqlforge -f Modelfile` (FROM the .gguf) and set
+   `SQLFORGE_BACKEND=ollama`.
+
+### Security
+
+The model's SQL is never trusted: execution goes through the same safe executor as
+eval (parse-validated single SELECT, read-only connection, 5s timeout, row cap).
+`db_id` is pattern-validated and must exist on disk (no path input). Question length
+capped. Hand-rolled per-IP token bucket (~20 lines) instead of a middleware
+dependency — small enough to read in an interview, swap for Redis-based limiting
+behind a real load balancer.
+
+### Databases mounted, not baked into the image
+
+Keeps the image small and the data pipeline the single source of truth for what the
+API can query.

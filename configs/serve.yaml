@@ -1,0 +1,12 @@
+# Milestone 6: serving configuration
+backend: transformers        # mock | transformers | vllm | ollama
+model_id: Qwen/Qwen2.5-Coder-1.5B-Instruct
+adapter: ""                  # e.g. outputs/grpo/adapter (transformers backend only)
+ollama_model: sqlforge       # model name inside Ollama (after GGUF import)
+ollama_url: http://localhost:11434
+db_root: data/raw/spider_data/database
+max_new_tokens: 256
+max_question_chars: 500
+exec_timeout_s: 5.0
+exec_row_limit: 500
+rate_limit_per_minute: 30    # per client IP, in-memory token bucket
