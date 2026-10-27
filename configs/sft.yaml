@@ -1,0 +1,29 @@
+# Milestone 3: LoRA SFT, sized for a free Colab T4 (16GB).
+model_id: Qwen/Qwen2.5-Coder-1.5B-Instruct
+train_path: data/processed/train.jsonl
+output_dir: outputs/sft
+val_fraction: 0.02          # small held-out slice for the loss curve (never the test set)
+
+# Sequence
+max_seq_len: 1024           # covers schema (~400 tok) + question + SQL for ~99% of examples
+
+# LoRA
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+load_in_4bit: true          # QLoRA; base weights in nf4
+
+# Optimization
+learning_rate: 2.0e-4
+epochs: 2
+per_device_batch: 4
+grad_accum: 4               # effective batch 16
+warmup_ratio: 0.03
+lr_scheduler: cosine
+seed: 42
+
+# Logging / checkpoints
+logging_steps: 10
+save_steps: 100             # frequent, because free Colab disconnects
+report_to: none             # set to wandb if WANDB_API_KEY is configured

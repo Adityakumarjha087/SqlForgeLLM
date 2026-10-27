@@ -17,6 +17,17 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.8",
 ]
+ml = [
+    "accelerate>=1.15.0",
+    "peft>=0.21.2",
+    "torch>=2.14.1",
+    "transformers>=5.21.0",
+]
+train = [
+    "bitsandbytes>=0.45 ; sys_platform == 'linux'",
+    "datasets>=3.0",
+    "trl>=0.24",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -29,6 +40,8 @@ packages = ["src/sqlforge"]
 line-length = 100
 target-version = "py311"
 src = ["src", "tests", "training", "scripts"]
+# Colab notebooks are thin shell-magic wrappers; lint rules target the package.
+extend-exclude = ["notebooks"]
 
 [tool.ruff.lint]
 select = [

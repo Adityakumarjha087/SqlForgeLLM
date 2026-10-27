@@ -78,3 +78,43 @@ what we considered instead.
 - 1659 extra examples from older datasets (GeoQuery, Restaurants, ...) ported to
   Spider format. More SFT signal for free; the same execution filter applies. Config
   flag `include_train_others` turns it off for ablations.
+
+## 2026-10-27 — Milestone 3 (SFT)
+
+### Why completion-only loss
+
+The prompt (schema + question) is ~3-4x longer than the target SQL. With full-sequence
+loss, most of the gradient teaches the model to predict schema text it will never have
+to generate, and the SQL signal is diluted. TRL's prompt-completion format masks prompt
+tokens out of the loss so every gradient step is about question -> SQL.
+
+### Hyperparameters and why
+
+| Param | Value | Why |
+|---|---|---|
+| LoRA rank r | 16 | enough capacity for a narrow task (SQL syntax + schema grounding); r=8 underfit slightly in literature, r=64 doubles memory for little gain on 1.5B |
+| alpha | 32 | standard 2x rank; effective scale alpha/r = 2 |
+| target modules | all attn + MLP proj | attention-only LoRA underperforms on structured generation tasks |
+| dropout | 0.05 | mild; dataset is small-ish (8.6k) |
+| LR | 2e-4, cosine, 3% warmup | the usual LoRA sweet spot — LoRA tolerates ~10x higher LR than full FT |
+| epochs | 2 | 1 underfits small data; 3+ memorizes train schemas |
+| max_seq_len | 1024 | covers schema (~400 tok) + question + SQL for ~99% of examples |
+| batch | 4 x 4 accum = 16 effective | largest that fits T4 with grad checkpointing |
+| precision | fp16 + 4-bit nf4 base | T4 (compute 7.5) has no bf16 |
+
+### Memory math (why QLoRA on a 16GB T4)
+
+Full fp16 fine-tune of 1.54B params: 2 (weights) + 2 (grads) + 8 (Adam m,v in fp32)
+= 12 bytes/param ≈ **18.5GB** — does not fit, before activations.
+
+QLoRA: base in 4-bit nf4 ≈ 1.0GB; LoRA params (r=16, all proj) ≈ 35M -> 70MB fp16;
+their grads + paged 8-bit Adam ≈ 0.3GB; activations at batch 4 x 1024 tokens with
+gradient checkpointing ≈ 2-3GB; CUDA/kernel overhead ≈ 1.5GB. **Total ≈ 5-6GB** —
+comfortable, with headroom for the eval pass.
+
+### Plain TRL + PEFT + bitsandbytes, not Unsloth
+
+Unsloth is ~2x faster but pins specific torch/CUDA combos and monkey-patches
+internals; on a portfolio project, readable standard-stack code wins. If T4 time
+becomes the bottleneck, swapping the model-loading block for Unsloth's
+FastLanguageModel is a contained change.
