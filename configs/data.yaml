@@ -1,0 +1,10 @@
+# Milestone 1: data pipeline configuration
+hf_repo: HAL-9001/spider-databases   # mirror of the official spider_data.zip
+zip_name: spider_data.zip
+raw_dir: data/raw
+processed_dir: data/processed
+include_train_others: true   # train_others.json: extra examples from Restaurants/GeoQuery/etc.
+max_schema_chars: 4000       # above this, fall back to compact column-list schema
+exec_timeout_s: 10.0         # gold queries that can't finish in this long are dropped
+exec_row_limit: 10000
+seed: 42
