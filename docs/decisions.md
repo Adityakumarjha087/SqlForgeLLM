@@ -118,3 +118,33 @@ Unsloth is ~2x faster but pins specific torch/CUDA combos and monkey-patches
 internals; on a portfolio project, readable standard-stack code wins. If T4 time
 becomes the bottleneck, swapping the model-loading block for Unsloth's
 FastLanguageModel is a contained change.
+
+## 2026-10-27 — Milestone 4 (GRPO)
+
+### Reward weighting: format 0.2, execution 0.3, correctness 1.0, degenerate ≤ 0
+
+Correctness must dominate: 0.2 + 0.3 = 0.5 < 1.0, so no amount of well-formed,
+runnable-but-wrong SQL outscores a correct answer. Format and execution exist as
+*shaping*: with correctness alone, a prompt where all 8 samples are wrong gives zero
+advantage everywhere and teaches nothing; partial credit for "parses" and "runs"
+creates within-group variance even when nothing is correct yet. The degenerate
+penalty (empty / overlong / repetition collapse) targets the failure modes small
+models find first under RL. Each component is a separate TRL reward function so it
+gets its own logged curve — the reward-hacking tell is format/execution rising while
+correctness is flat.
+
+### Why GRPO starts from the SFT adapter and the KL anchors to it
+
+RL can only reinforce behaviour the policy already exhibits sometimes. The base model
+rarely emits perfectly-formatted correct SQL at temperature 0.9, so groups would be
+uniformly wrong (zero advantage). The SFT adapter is both the starting policy and the
+KL reference (beta=0.04): rewards pull toward correctness, KL pulls back toward
+SFT-style output, preventing collapse into degenerate high-reward text.
+
+### Sizing for a T4
+
+2000 prompts x 8 generations, completion ≤192 tokens, 4-bit base + LoRA. GRPO's
+per-step cost is dominated by generation (8 samples/prompt) and reward evaluation
+(2 SQLite executions/sample, bounded by the 5s timeout). ~500 optimizer steps fits
+in 2-3 free sessions with checkpoint resume. See docs/grpo-explained.md for the
+GRPO vs PPO vs DPO background.

@@ -1,0 +1,34 @@
+# Milestone 4: GRPO on top of the SFT adapter, sized for a free Colab T4.
+model_id: Qwen/Qwen2.5-Coder-1.5B-Instruct
+sft_adapter: outputs/sft/adapter
+train_path: data/processed/train.jsonl
+db_root: data/raw/spider_data/database
+output_dir: outputs/grpo
+
+# Prompt subset: GRPO is sample-hungry per step but needs far fewer prompts than
+# SFT; 2000 shuffled prompts x 1 epoch ~= 500 optimizer steps at this batch size.
+num_prompts: 2000
+max_prompt_length: 768
+max_completion_length: 192
+
+# Group sampling
+num_generations: 8          # completions per prompt; advantage = reward - group mean
+temperature: 0.9            # diversity inside the group; greedy groups learn nothing
+
+# Optimization (RL: much gentler than SFT)
+learning_rate: 1.0e-5
+beta: 0.04                  # KL penalty vs the SFT reference; guards against collapse
+epochs: 1
+per_device_batch: 8         # one full group per device batch
+grad_accum: 2
+load_in_4bit: true
+seed: 42
+
+# Rewards
+exec_timeout_s: 5.0
+exec_row_limit: 10000
+
+# Logging / checkpoints
+logging_steps: 5
+save_steps: 50
+report_to: none

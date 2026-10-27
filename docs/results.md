@@ -8,3 +8,8 @@ All metrics land here, appended with date and commit hash. Never overwritten.
 - Dropped: train/dedupe: 24, train/executes: 3
 - Output: **8632 train / 1034 test**
 - Databases: 146 train, 20 test (overlap enforced to be zero)
+
+## 2026-10-27 — Eval `smoke-base` (commit 0dbf749)
+
+- Model: `Qwen/Qwen2.5-Coder-1.5B-Instruct`
+- Examples: 20 — **execution accuracy 70.0%**, exact match 60.0%, pred errors 20.0%
