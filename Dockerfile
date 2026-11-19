@@ -6,12 +6,12 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 # ml group gives the transformers backend; mock needs nothing extra.
-RUN uv sync --frozen --no-install-project --group ml
+RUN uv sync --frozen --no-install-project --no-dev --group ml
 
 COPY src ./src
 COPY configs ./configs
 COPY scripts ./scripts
-RUN uv sync --frozen --group ml
+RUN uv sync --frozen --no-dev --group ml
 
 # Spider databases are mounted, not baked in (they are 1GB+ with test DBs):
 #   docker run -v ./data:/app/data ...
