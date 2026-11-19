@@ -8,7 +8,6 @@ output_dir: outputs/grpo
 # Prompt subset: GRPO is sample-hungry per step but needs far fewer prompts than
 # SFT; 2000 shuffled prompts x 1 epoch ~= 500 optimizer steps at this batch size.
 num_prompts: 2000
-max_prompt_length: 768
 max_completion_length: 192
 
 # Group sampling
@@ -22,6 +21,7 @@ epochs: 1
 per_device_batch: 8         # one full group per device batch
 grad_accum: 2
 load_in_4bit: true
+fp16: true                  # set false on CPU/MPS
 seed: 42
 
 # Rewards

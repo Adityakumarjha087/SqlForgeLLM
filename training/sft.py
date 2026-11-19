@@ -41,7 +41,8 @@ class SFTTrainConfig(BaseModel):
     epochs: int
     per_device_batch: int
     grad_accum: int
-    warmup_ratio: float
+    warmup_steps: int
+    fp16: bool
     lr_scheduler: str
     seed: int
     logging_steps: int
@@ -120,8 +121,8 @@ def main() -> None:
         gradient_checkpointing=True,
         learning_rate=cfg.learning_rate,
         lr_scheduler_type=cfg.lr_scheduler,
-        warmup_ratio=cfg.warmup_ratio,
-        fp16=True,
+        warmup_steps=cfg.warmup_steps,
+        fp16=cfg.fp16,
         optim="paged_adamw_8bit" if cfg.load_in_4bit else "adamw_torch",
         logging_steps=cfg.logging_steps,
         eval_strategy="steps",

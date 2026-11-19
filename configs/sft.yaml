@@ -19,8 +19,9 @@ learning_rate: 2.0e-4
 epochs: 2
 per_device_batch: 4
 grad_accum: 4               # effective batch 16
-warmup_ratio: 0.03
+warmup_steps: 30            # ~3% of ~1060 total steps
 lr_scheduler: cosine
+fp16: true                  # set false on CPU/MPS
 seed: 42
 
 # Logging / checkpoints

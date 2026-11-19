@@ -32,7 +32,6 @@ class GRPOTrainConfig(BaseModel):
     db_root: str
     output_dir: str
     num_prompts: int
-    max_prompt_length: int
     max_completion_length: int
     num_generations: int
     temperature: float
@@ -42,6 +41,7 @@ class GRPOTrainConfig(BaseModel):
     per_device_batch: int
     grad_accum: int
     load_in_4bit: bool
+    fp16: bool
     seed: int
     exec_timeout_s: float
     exec_row_limit: int
@@ -117,9 +117,8 @@ def main() -> None:
         beta=cfg.beta,
         num_generations=cfg.num_generations,
         temperature=cfg.temperature,
-        max_prompt_length=cfg.max_prompt_length,
         max_completion_length=cfg.max_completion_length,
-        fp16=True,
+        fp16=cfg.fp16,
         optim="paged_adamw_8bit" if cfg.load_in_4bit else "adamw_torch",
         logging_steps=cfg.logging_steps,
         save_steps=cfg.save_steps,
