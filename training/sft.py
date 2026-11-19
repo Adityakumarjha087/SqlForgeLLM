@@ -75,7 +75,7 @@ def load_base_model(cfg: SFTTrainConfig):
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_id)
-    kwargs: dict = {"dtype": torch.float16}  # T4 has no bf16
+    kwargs: dict = {"dtype": torch.float16 if cfg.fp16 else torch.float32}
     if cfg.load_in_4bit:
         from transformers import BitsAndBytesConfig
 

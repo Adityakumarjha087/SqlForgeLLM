@@ -81,7 +81,7 @@ def load_policy(cfg: GRPOTrainConfig):
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_id, padding_side="left")
-    kwargs: dict = {"dtype": torch.float16}
+    kwargs: dict = {"dtype": torch.float16 if cfg.fp16 else torch.float32}
     if cfg.load_in_4bit:
         from transformers import BitsAndBytesConfig
 
