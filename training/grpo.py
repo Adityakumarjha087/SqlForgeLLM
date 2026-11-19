@@ -12,6 +12,7 @@ Usage: uv run python training/grpo.py [--config configs/grpo.yaml]
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -20,9 +21,12 @@ from sqlforge.config import load_config
 from sqlforge.data.pipeline import read_jsonl
 from sqlforge.data.prompting import build_messages
 from sqlforge.seeding import set_seed
-from training.rewards import make_reward_funcs
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+# `python training/grpo.py` puts training/ (not the repo root) on sys.path;
+# the sqlforge package is installed, but the training package is not.
+sys.path.insert(0, str(REPO_ROOT))
+from training.rewards import make_reward_funcs  # noqa: E402
 
 
 class GRPOTrainConfig(BaseModel):
