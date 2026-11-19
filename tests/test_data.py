@@ -72,3 +72,19 @@ class TestFilters:
         kept = leak_guard(train, test, dropped)
         assert [e.db_id for e in kept] == ["other_db"]
         assert dropped["leak_guard"] == 1
+
+
+class TestExtractSqlEdgeCases:
+    def test_chatter_containing_the_word_with(self):
+        text = "Sure, I can help with that: SELECT a FROM t"
+        assert extract_sql(text) == "SELECT a FROM t"
+
+    def test_cte_after_chatter(self):
+        text = "Here you go: WITH c AS (SELECT 1 AS x) SELECT x FROM c"
+        assert extract_sql(text) == "WITH c AS (SELECT 1 AS x) SELECT x FROM c"
+
+    def test_unparseable_still_returns_earliest_attempt(self):
+        assert extract_sql("SELECT frm nope garbage((").startswith("SELECT")
+
+    def test_no_sql_at_all(self):
+        assert extract_sql("I cannot answer that.") == "I cannot answer that."

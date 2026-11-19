@@ -31,20 +31,31 @@ def build_messages(schema: str, question: str) -> list[dict[str, str]]:
 _FENCE_RE = re.compile(r"```(?:sql)?\s*(.*?)```", re.DOTALL | re.IGNORECASE)
 
 
+def _first_statement(text: str) -> str:
+    return re.sub(r"\s+", " ", text.split(";")[0].strip())
+
+
 def extract_sql(completion: str) -> str:
     """Pull the SQL out of a model completion.
 
     Tolerates markdown fences and leading chatter; returns the first statement,
-    without a trailing semicolon.
+    without a trailing semicolon. Chatter can contain the word "with" (as in
+    "I'll help with that: SELECT ..."), so each SELECT/WITH position is a
+    candidate and the first one that parses as a query wins; if none parses,
+    fall back to the earliest candidate so scoring still sees the attempt.
     """
+    from sqlforge.execution import validate_select_only
+
     text = completion.strip()
     fenced = _FENCE_RE.search(text)
     if fenced:
         text = fenced.group(1).strip()
-    # Drop anything before the first SELECT/WITH (case-insensitive).
-    match = re.search(r"\b(select|with)\b", text, re.IGNORECASE)
-    if match:
-        text = text[match.start() :]
-    # Keep only the first statement.
-    text = text.split(";")[0].strip()
-    return re.sub(r"\s+", " ", text)
+
+    candidates = [
+        _first_statement(text[match.start() :])
+        for match in re.finditer(r"\b(select|with)\b", text, re.IGNORECASE)
+    ][:5]
+    for candidate in candidates:
+        if validate_select_only(candidate) is None:
+            return candidate
+    return candidates[0] if candidates else _first_statement(text)
