@@ -124,6 +124,12 @@ def health() -> dict:
 @app.get("/databases")
 def databases() -> dict:
     """Available db_ids and their schemas (drives the frontend's picker)."""
+    if not db_root.is_dir():
+        # Fresh checkout without Spider data: answer instead of 500ing.
+        return {
+            "databases": [],
+            "hint": "no databases found - run scripts/download_spider.py and mount data/",
+        }
     ids = sorted(p.name for p in db_root.iterdir() if (p / f"{p.name}.sqlite").exists())
     return {"databases": ids}
 

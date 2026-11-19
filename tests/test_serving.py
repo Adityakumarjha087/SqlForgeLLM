@@ -71,3 +71,12 @@ def test_rate_limit_kicks_in(client):
     codes = [client.post("/generate-sql", json=payload).status_code for _ in range(8)]
     assert 429 in codes
     assert codes[0] == 200
+
+
+def test_databases_graceful_without_data_dir(client, tmp_path):
+    from sqlforge.serving import app as app_module
+
+    app_module.db_root = tmp_path / "does-not-exist"
+    body = client.get("/databases").json()
+    assert body["databases"] == []
+    assert "hint" in body
