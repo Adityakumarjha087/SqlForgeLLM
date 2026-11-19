@@ -181,3 +181,20 @@ behind a real load balancer.
 
 Keeps the image small and the data pipeline the single source of truth for what the
 API can query.
+
+## 2026-11-19 — Training scripts validated end to end on CPU
+
+Before the first Colab run, both training scripts were executed locally against the
+installed TRL 1.16 / transformers 5 stack using `trl-internal-testing/tiny-Qwen2ForCausalLM-2.5`
+and env-var config overrides (`SQLFORGE_*`), catching three would-be Colab failures:
+
+1. `warmup_ratio` no longer exists in TrainingArguments → replaced with `warmup_steps`.
+2. `GRPOConfig.max_prompt_length` was removed upstream → dropped (prompts are already
+   bounded by the schema character cap).
+3. `python training/grpo.py` failed with ModuleNotFoundError: script-style execution
+   puts `training/` on sys.path, not the repo root — pytest's `pythonpath` had masked it.
+
+The dry runs cover the full path the T4 takes: dataset build, LoRA attach, training
+loop, eval pass, checkpoint save, GRPO group sampling, reward execution against real
+Spider SQLite files, and adapter save. Only the CUDA-specific pieces (bitsandbytes
+4-bit, fp16, paged optimizer) remain Colab-only, and each is behind a config flag.
