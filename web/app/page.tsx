@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SchemaBrowser } from "@/components/schema-browser";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { downloadCsv } from "@/lib/csv";
 import { exampleQuestions } from "@/lib/examples";
 import { highlightSql } from "@/lib/highlight";
 import { addToHistory, loadHistory, saveHistory, type HistoryEntry } from "@/lib/history";
@@ -21,6 +22,9 @@ interface QueryResult {
   truncated: boolean;
   execution_error: string | null;
 }
+
+// The database a result came from: the picker may have moved on since.
+type ShownResult = QueryResult & { dbId: string };
 
 type ApiStatus = { state: "checking" } | { state: "online"; backend: string } | { state: "offline" };
 
@@ -52,7 +56,7 @@ export default function Home() {
   const [dbId, setDbId] = useState("");
   const [schema, setSchema] = useState("");
   const [question, setQuestion] = useState("");
-  const [result, setResult] = useState<QueryResult | null>(null);
+  const [result, setResult] = useState<ShownResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -108,7 +112,7 @@ export default function Home() {
         const body = await response.json().catch(() => null);
         throw new Error(body?.detail ?? `API error ${response.status}`);
       }
-      setResult(await response.json());
+      setResult({ ...((await response.json()) as QueryResult), dbId });
       setHistory((h) => addToHistory(h, { dbId, question: question.trim() }));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -305,6 +309,18 @@ export default function Home() {
                         {result.rows.length} {result.rows.length === 1 ? "row" : "rows"}
                       </span>
                       {result.truncated && <span className="chip warn">truncated</span>}
+                      {result.rows.length > 0 && (
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          title="Download these rows as CSV"
+                          onClick={() =>
+                            downloadCsv(`${result.dbId}-result.csv`, result.columns, result.rows)
+                          }
+                        >
+                          CSV
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
