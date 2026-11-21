@@ -496,6 +496,19 @@ kbd {
 .schema-filter {
   font-size: 0.85rem;
 }
+.schema-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: -2px;
+}
+.schema-table.flash {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.schema-table {
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
 .schema-tables {
   overflow-y: auto;
   min-height: 0;
@@ -592,6 +605,9 @@ kbd {
   flex: none;
 }
 .badge.fk {
+  border: none;
+  cursor: pointer;
+  line-height: inherit;
   color: var(--accent);
   background: var(--accent-soft);
   font-weight: 500;
@@ -600,6 +616,9 @@ kbd {
   min-width: 2ch;
   /* Gives up its width long before the column name does. */
   flex: 0 100 auto;
+}
+.badge.fk:hover {
+  text-decoration: underline;
 }
 .schema-ddl {
   margin: 0;
