@@ -7,9 +7,10 @@ Ask a question in plain English, get a SQLite query that actually runs and retur
 right rows. Every stage is measured by **execution accuracy** on the Spider dev set,
 through an eval harness built *before* any training.
 
-![demo](docs/assets/demo.gif)
-*(demo GIF placeholder — record with the mock backend: `docker compose up`, then
-http://localhost:3000)*
+![SQLForge web UI: the concert_singer schema browser, a question, the generated SQL and its result](docs/assets/ui.png)
+*The web UI on the mock backend (`docker compose up`, then http://localhost:3000). The
+mock always answers with a row count of the first table, so its latency and tok/s are
+meaningless; set `SQLFORGE_BACKEND` to serve the real model.*
 
 ## Results
 
@@ -45,6 +46,18 @@ flowchart LR
 **The core loop:** the same safe SQL executor (read-only, parse-validated,
 timeout-bounded) is the data-quality filter, the eval metric, the GRPO reward, and the
 serving sandbox. One component, four jobs, tested once.
+
+## Web UI
+
+A Next.js page over the API (`web/`). The sidebar browses the selected database's
+schema — tables, column types, primary keys, and foreign keys that jump to the table
+they reference — with a filter and a DDL tab showing exactly the text the model is
+prompted with. Example questions are generated from that schema, a counter enforces
+the API's 500-character cap, and recent questions are kept per browser. Results show
+the highlighted SQL with latency, the rows (long values clipped, full text on hover)
+and a CSV download that guards against spreadsheet formula injection. It follows the
+system light/dark setting or a manual toggle, meets WCAG AA contrast, announces
+progress to screen readers, and works at phone width.
 
 ## Reproduce it
 
