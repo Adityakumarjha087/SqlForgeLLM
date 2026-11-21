@@ -307,6 +307,32 @@ button {
   gap: 12px;
   margin-top: 10px;
 }
+.char-count {
+  margin-left: auto;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.char-count.near {
+  color: var(--warn);
+}
+.char-count.over {
+  color: var(--error);
+  font-weight: 600;
+}
+.btn-primary {
+  white-space: nowrap;
+}
+@media (max-width: 520px) {
+  /* Phones have no keyboard shortcut to advertise. */
+  .kbd-hint {
+    display: none;
+  }
+}
+textarea[aria-invalid="true"] {
+  border-color: var(--error);
+}
 kbd {
   font-family: var(--mono);
   font-size: 0.72rem;

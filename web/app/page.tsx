@@ -6,6 +6,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { highlightSql } from "@/lib/highlight";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Mirrors max_question_chars in configs/serve.yaml; the API enforces it, this just warns early.
+const MAX_QUESTION_CHARS = 500;
 
 interface QueryResult {
   sql: string;
@@ -78,8 +80,12 @@ export default function Home() {
       .catch(() => setSchema("(failed to load schema)"));
   }, [dbId]);
 
+  // Code points, like Python's len() on the server (emoji count once, not twice).
+  const questionLength = [...question.trim()].length;
+  const tooLong = questionLength > MAX_QUESTION_CHARS;
+
   const ask = useCallback(async () => {
-    if (!question.trim() || !dbId || loading) return;
+    if (!question.trim() || tooLong || !dbId || loading) return;
     setLoading(true);
     setError("");
     setResult(null);
@@ -100,7 +106,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [question, dbId, loading]);
+  }, [question, tooLong, dbId, loading]);
 
   const copySql = useCallback(async () => {
     if (!result) return;
@@ -161,16 +167,29 @@ export default function Home() {
               id="question"
               value={question}
               placeholder="e.g. How many singers are there, by country?"
+              aria-invalid={tooLong}
+              aria-describedby="question-count"
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask();
               }}
             />
             <div className="ask-row">
-              <span className="hint">
+              <span className="hint kbd-hint">
                 <kbd>{shortcut}</kbd> to run
               </span>
-              <button className="btn-primary" onClick={ask} disabled={loading || !question.trim() || !dbId}>
+              <span
+                id="question-count"
+                className={`char-count${tooLong ? " over" : questionLength > MAX_QUESTION_CHARS * 0.9 ? " near" : ""}`}
+              >
+                {questionLength}/{MAX_QUESTION_CHARS}
+                {tooLong && " · too long"}
+              </span>
+              <button
+                className="btn-primary"
+                onClick={ask}
+                disabled={loading || !question.trim() || tooLong || !dbId}
+              >
                 {loading ? "Generating…" : "Generate & run"}
               </button>
             </div>
