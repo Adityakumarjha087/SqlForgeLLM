@@ -307,6 +307,34 @@ button {
   gap: 12px;
   margin-top: 10px;
 }
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.examples-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-right: 2px;
+}
+.example-chip {
+  font-size: 0.8rem;
+  text-align: left;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 3px 11px;
+  max-width: 100%;
+}
+.example-chip:hover {
+  border-color: var(--accent);
+}
 .char-count {
   margin-left: auto;
   font-size: 0.78rem;

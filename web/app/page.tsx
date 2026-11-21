@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SchemaBrowser } from "@/components/schema-browser";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { exampleQuestions } from "@/lib/examples";
 import { highlightSql } from "@/lib/highlight";
+import { parseSchema } from "@/lib/schema";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 // Mirrors max_question_chars in configs/serve.yaml; the API enforces it, this just warns early.
@@ -79,6 +81,9 @@ export default function Home() {
       .then((d) => setSchema(d.schema))
       .catch(() => setSchema("(failed to load schema)"));
   }, [dbId]);
+
+  const questionRef = useRef<HTMLTextAreaElement>(null);
+  const examples = useMemo(() => exampleQuestions(parseSchema(schema)), [schema]);
 
   // Code points, like Python's len() on the server (emoji count once, not twice).
   const questionLength = [...question.trim()].length;
@@ -164,6 +169,7 @@ export default function Home() {
               Question
             </label>
             <textarea
+              ref={questionRef}
               id="question"
               value={question}
               placeholder="e.g. How many singers are there, by country?"
@@ -174,6 +180,24 @@ export default function Home() {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask();
               }}
             />
+            {examples.length > 0 && (
+              <div className="examples">
+                <span className="examples-label">Try</span>
+                {examples.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    className="example-chip"
+                    onClick={() => {
+                      setQuestion(example);
+                      questionRef.current?.focus();
+                    }}
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="ask-row">
               <span className="hint kbd-hint">
                 <kbd>{shortcut}</kbd> to run
