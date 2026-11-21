@@ -5,6 +5,7 @@ import { SchemaBrowser } from "@/components/schema-browser";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { exampleQuestions } from "@/lib/examples";
 import { highlightSql } from "@/lib/highlight";
+import { addToHistory, loadHistory, saveHistory, type HistoryEntry } from "@/lib/history";
 import { parseSchema } from "@/lib/schema";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -56,9 +57,11 @@ export default function Home() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [shortcut, setShortcut] = useState("Ctrl ↵");
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
     if (/Mac|iPhone|iPad/.test(navigator.userAgent)) setShortcut("⌘ ↵");
+    setHistory(loadHistory());
     fetch(`${API}/health`)
       .then((r) => r.json())
       .then((d) => setStatus({ state: "online", backend: d.backend }))
@@ -106,6 +109,7 @@ export default function Home() {
         throw new Error(body?.detail ?? `API error ${response.status}`);
       }
       setResult(await response.json());
+      setHistory((h) => addToHistory(h, { dbId, question: question.trim() }));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -218,6 +222,41 @@ export default function Home() {
               </button>
             </div>
             {error && <p className="error">{error}</p>}
+            {history.length > 0 && (
+              <div className="history">
+                <div className="history-head">
+                  <span className="examples-label">Recent</span>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => {
+                      setHistory([]);
+                      saveHistory([]);
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+                <ul>
+                  {history.map((entry) => (
+                    <li key={`${entry.dbId}\u0000${entry.question}`}>
+                      <button
+                        type="button"
+                        title={`Restore this question on ${entry.dbId}`}
+                        onClick={() => {
+                          if (databases.includes(entry.dbId)) setDbId(entry.dbId);
+                          setQuestion(entry.question);
+                          questionRef.current?.focus();
+                        }}
+                      >
+                        <span className="history-db">{entry.dbId}</span>
+                        <span className="history-question">{entry.question}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </section>
 
           {loading && (
