@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { SchemaBrowser } from "@/components/schema-browser";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { highlightSql } from "@/lib/highlight";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -128,7 +129,10 @@ export default function Home() {
             <p>Ask in English — a fine-tuned 1.5B model writes the SQL, a read-only sandbox runs it.</p>
           </div>
         </div>
-        <StatusPill status={status} />
+        <div className="header-actions">
+          <StatusPill status={status} />
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="layout">
