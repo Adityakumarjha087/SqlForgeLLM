@@ -91,15 +91,9 @@ export function SchemaBrowser({ schema }: { schema: string }) {
             : "Raw schema"}
         </span>
         {tables.length > 0 && (
-          <div className="segmented" role="tablist" aria-label="Schema view">
+          <div className="segmented" role="group" aria-label="Schema view">
             {(["tables", "ddl"] as const).map((v) => (
-              <button
-                key={v}
-                role="tab"
-                aria-selected={view === v}
-                className={view === v ? "active" : ""}
-                onClick={() => setView(v)}
-              >
+              <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>
                 {v === "tables" ? "Tables" : "DDL"}
               </button>
             ))}

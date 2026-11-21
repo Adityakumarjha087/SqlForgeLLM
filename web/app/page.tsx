@@ -99,6 +99,15 @@ export default function Home() {
   }, [dbId]);
 
   const questionRef = useRef<HTMLTextAreaElement>(null);
+  const announcement = loading
+    ? "Generating SQL…"
+    : copied
+      ? "SQL copied to clipboard."
+      : result
+        ? result.execution_error
+          ? "SQL generated, but running it failed."
+          : `SQL generated. The query returned ${result.rows.length} ${result.rows.length === 1 ? "row" : "rows"}.`
+        : "";
   const examples = useMemo(() => exampleQuestions(parseSchema(schema)), [schema]);
 
   // Code points, like Python's len() on the server (emoji count once, not twice).
@@ -180,7 +189,11 @@ export default function Home() {
           {dbId && <SchemaBrowser schema={schema} />}
         </aside>
 
-        <main className="workspace">
+        <main className="workspace" aria-busy={loading}>
+          {/* Screen readers hear progress and outcome without moving focus. */}
+          <p className="sr-only" role="status" aria-live="polite">
+            {announcement}
+          </p>
           <section className="panel">
             <label className="panel-title" htmlFor="question">
               Question
@@ -234,7 +247,11 @@ export default function Home() {
                 {loading ? "Generating…" : "Generate & run"}
               </button>
             </div>
-            {error && <p className="error">{error}</p>}
+            {error && (
+              <p className="error" role="alert">
+                {error}
+              </p>
+            )}
             {history.length > 0 && (
               <div className="history">
                 <div className="history-head">
@@ -273,12 +290,12 @@ export default function Home() {
           </section>
 
           {loading && (
-            <section className="panel" aria-busy>
+            <section className="panel" aria-busy="true" aria-label="Generating SQL">
               <div className="panel-head">
                 <h2 className="panel-title">Generated SQL</h2>
               </div>
-              <div className="skeleton" />
-              <div className="skeleton short" />
+              <div className="skeleton" aria-hidden />
+              <div className="skeleton short" aria-hidden />
             </section>
           )}
 
