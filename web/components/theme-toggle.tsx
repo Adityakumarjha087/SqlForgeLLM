@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { THEME_KEY, type Theme } from "@/lib/theme";
+import { THEME_KEY, syncThemeColor, type Theme } from "@/lib/theme";
 
 const OPTIONS: { value: Theme; label: string; icon: React.ReactNode }[] = [
   {
@@ -35,6 +35,7 @@ function applyTheme(theme: Theme) {
   const root = document.documentElement;
   if (theme === "system") delete root.dataset.theme;
   else root.dataset.theme = theme;
+  syncThemeColor(theme);
   try {
     if (theme === "system") localStorage.removeItem(THEME_KEY);
     else localStorage.setItem(THEME_KEY, theme);
@@ -48,7 +49,10 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const current = document.documentElement.dataset.theme;
-    if (current === "light" || current === "dark") setTheme(current);
+    if (current === "light" || current === "dark") {
+      setTheme(current);
+      syncThemeColor(current);
+    }
   }, []);
 
   return (
