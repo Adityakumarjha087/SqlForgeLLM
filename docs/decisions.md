@@ -198,3 +198,20 @@ The dry runs cover the full path the T4 takes: dataset build, LoRA attach, train
 loop, eval pass, checkpoint save, GRPO group sampling, reward execution against real
 Spider SQLite files, and adapter save. Only the CUDA-specific pieces (bitsandbytes
 4-bit, fp16, paged optimizer) remain Colab-only, and each is behind a config flag.
+
+## 2026-11-21 — Frontend: structured schema browser
+
+### Parse the schema text in the browser, not a new API endpoint
+
+The sidebar now lists tables and columns (types, primary keys, foreign-key targets,
+filterable) instead of a raw text dump. `web/lib/schema.ts` parses the exact string
+`/schema/{db_id}` already returns, so what the browser shows and what the model sees in
+its prompt cannot drift apart; the raw DDL stays one click away under the "DDL" tab.
+It handles both shapes `extract_schema` emits (CREATE TABLE statements and the compact
+`table(col type, ...)` fallback) and was checked against all 166 Spider databases
+(873 tables, 671 foreign keys, no misses). If a line doesn't parse, it is skipped; if
+nothing parses, the panel falls back to the raw text.
+
+Alternative considered: a `/schema/{db_id}/tables` endpoint built on `PRAGMA
+table_info` / `foreign_key_list`. More exact, but it would be a second schema source
+to keep consistent with the prompt and an API change for a display-only feature.
