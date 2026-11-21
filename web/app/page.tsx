@@ -43,10 +43,19 @@ function StatusPill({ status }: { status: ApiStatus }) {
   );
 }
 
+// Past this many characters a cell is likely clipped by the CSS width cap,
+// so the full value goes in a tooltip.
+const LONG_CELL = 40;
+
 function Cell({ value }: { value: unknown }) {
   if (value === null) return <td className="null">NULL</td>;
   if (typeof value === "number") return <td className="num">{value}</td>;
-  return <td>{String(value)}</td>;
+  const text = String(value);
+  return (
+    <td title={text.length > LONG_CELL ? text : undefined}>
+      <span className="cell-text">{text}</span>
+    </td>
+  );
 }
 
 export default function Home() {
