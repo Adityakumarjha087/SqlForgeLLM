@@ -71,6 +71,8 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [shortcut, setShortcut] = useState("Ctrl ↵");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  // The mock backend returns a canned query, so its tok/s figure says nothing about a real model.
+  const showThroughput = !(status.state === "online" && status.backend === "mock");
 
   useEffect(() => {
     if (/Mac|iPhone|iPad/.test(navigator.userAgent)) setShortcut("⌘ ↵");
@@ -315,7 +317,7 @@ export default function Home() {
                   <h2 className="panel-title">Generated SQL</h2>
                   <div className="chips">
                     <span className="chip">{result.latency_ms.toFixed(0)} ms</span>
-                    {result.tokens_per_second ? (
+                    {showThroughput && result.tokens_per_second ? (
                       <span className="chip">{result.tokens_per_second.toFixed(1)} tok/s</span>
                     ) : null}
                     <button className="btn-ghost" onClick={copySql}>
