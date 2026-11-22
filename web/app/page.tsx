@@ -101,10 +101,25 @@ export default function Home() {
   useEffect(() => {
     if (!dbId) return;
     setSchema("");
+    // Ignore a slow response for a database the picker has already moved off.
+    let stale = false;
     fetch(`${API}/schema/${dbId}`)
-      .then((r) => r.json())
-      .then((d) => setSchema(d.schema))
-      .catch(() => setSchema("(failed to load schema)"));
+      .then(async (r) => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => null);
+          throw new Error(body?.detail ?? `API error ${r.status}`);
+        }
+        return r.json();
+      })
+      .then((d) => {
+        if (!stale) setSchema(d.schema);
+      })
+      .catch((e) => {
+        if (!stale) setSchema(`(failed to load schema: ${e instanceof Error ? e.message : e})`);
+      });
+    return () => {
+      stale = true;
+    };
   }, [dbId]);
 
   const questionRef = useRef<HTMLTextAreaElement>(null);
