@@ -118,7 +118,11 @@ async def rate_limit(request: Request, call_next):
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "backend": cfg.backend}
+    return {
+        "status": "ok",
+        "backend": cfg.backend,
+        "max_question_chars": cfg.max_question_chars,
+    }
 
 
 @app.get("/databases")

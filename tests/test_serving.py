@@ -20,7 +20,11 @@ def client(tiny_db, monkeypatch):
 def test_health(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "backend": "mock"}
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["backend"] == "mock"
+    # The frontend reads its question-length cap from here.
+    assert body["max_question_chars"] > 0
 
 
 def test_databases_lists_fixture(client):

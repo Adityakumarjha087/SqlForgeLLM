@@ -10,8 +10,9 @@ import { addToHistory, loadHistory, saveHistory, type HistoryEntry } from "@/lib
 import { parseSchema } from "@/lib/schema";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-// Mirrors max_question_chars in configs/serve.yaml; the API enforces it, this just warns early.
-const MAX_QUESTION_CHARS = 500;
+// Fallback until /health reports the server's max_question_chars (configs/serve.yaml).
+// The API enforces the cap; the UI only warns early.
+const DEFAULT_MAX_QUESTION_CHARS = 500;
 
 interface QueryResult {
   sql: string;
@@ -73,13 +74,19 @@ export default function Home() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   // The mock backend returns a canned query, so its tok/s figure says nothing about a real model.
   const showThroughput = !(status.state === "online" && status.backend === "mock");
+  const [maxQuestionChars, setMaxQuestionChars] = useState(DEFAULT_MAX_QUESTION_CHARS);
 
   useEffect(() => {
     if (/Mac|iPhone|iPad/.test(navigator.userAgent)) setShortcut("⌘ ↵");
     setHistory(loadHistory());
     fetch(`${API}/health`)
       .then((r) => r.json())
-      .then((d) => setStatus({ state: "online", backend: d.backend }))
+      .then((d) => {
+        setStatus({ state: "online", backend: d.backend });
+        if (Number.isInteger(d.max_question_chars) && d.max_question_chars > 0) {
+          setMaxQuestionChars(d.max_question_chars);
+        }
+      })
       .catch(() => setStatus({ state: "offline" }));
     fetch(`${API}/databases`)
       .then((r) => r.json())
@@ -114,7 +121,7 @@ export default function Home() {
 
   // Code points, like Python's len() on the server (emoji count once, not twice).
   const questionLength = [...question.trim()].length;
-  const tooLong = questionLength > MAX_QUESTION_CHARS;
+  const tooLong = questionLength > maxQuestionChars;
 
   const ask = useCallback(async () => {
     if (!question.trim() || tooLong || !dbId || loading) return;
@@ -236,9 +243,9 @@ export default function Home() {
               </span>
               <span
                 id="question-count"
-                className={`char-count${tooLong ? " over" : questionLength > MAX_QUESTION_CHARS * 0.9 ? " near" : ""}`}
+                className={`char-count${tooLong ? " over" : questionLength > maxQuestionChars * 0.9 ? " near" : ""}`}
               >
-                {questionLength}/{MAX_QUESTION_CHARS}
+                {questionLength}/{maxQuestionChars}
                 {tooLong && " · too long"}
               </span>
               <button
