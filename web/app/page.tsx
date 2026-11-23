@@ -379,7 +379,7 @@ export default function Home() {
                 ) : result.rows.length === 0 ? (
                   <p className="hint">Query ran fine but returned no rows.</p>
                 ) : (
-                  <div className="table-wrap">
+                  <div className="table-wrap" tabIndex={0} role="region" aria-label="Query result rows (scrollable)">
                     <table>
                       <caption className="sr-only">
                         Query result: {result.rows.length} {result.rows.length === 1 ? "row" : "rows"},{" "}
