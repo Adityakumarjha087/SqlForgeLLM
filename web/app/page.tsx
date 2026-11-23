@@ -381,10 +381,16 @@ export default function Home() {
                 ) : (
                   <div className="table-wrap">
                     <table>
+                      <caption className="sr-only">
+                        Query result: {result.rows.length} {result.rows.length === 1 ? "row" : "rows"},{" "}
+                        {result.columns.length} {result.columns.length === 1 ? "column" : "columns"}
+                      </caption>
                       <thead>
                         <tr>
                           {result.columns.map((c, i) => (
-                            <th key={i}>{c}</th>
+                            <th key={i} scope="col">
+                              {c}
+                            </th>
                           ))}
                         </tr>
                       </thead>
