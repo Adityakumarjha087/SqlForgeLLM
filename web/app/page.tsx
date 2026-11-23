@@ -201,7 +201,15 @@ export default function Home() {
           <label className="panel-title" htmlFor="db-select">
             Database
           </label>
-          <select id="db-select" value={dbId} onChange={(e) => setDbId(e.target.value)}>
+          <select
+            id="db-select"
+            value={dbId}
+            disabled={databases.length === 0}
+            onChange={(e) => setDbId(e.target.value)}
+          >
+            {databases.length === 0 && (
+              <option value="">{status.state === "offline" ? "API unreachable" : "Loading databases…"}</option>
+            )}
             {databases.map((d) => (
               <option key={d} value={d}>
                 {d}
