@@ -141,6 +141,15 @@ export default function Home() {
   }, [dbId]);
 
   const questionRef = useRef<HTMLTextAreaElement>(null);
+  const resultRef = useRef<HTMLElement>(null);
+
+  // On a phone the result lands below the fold (question, examples and recent list come first).
+  // "nearest" is a no-op when it is already visible, so wide layouts do not jump.
+  useEffect(() => {
+    if (!result) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    resultRef.current?.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+  }, [result]);
   const announcement = loading
     ? "Generating SQL…"
     : copied
@@ -368,7 +377,7 @@ export default function Home() {
 
           {result && (
             <>
-              <section className="panel">
+              <section className="panel" ref={resultRef}>
                 <div className="panel-head">
                   <h2 className="panel-title">Generated SQL</h2>
                   <div className="chips">
