@@ -796,3 +796,9 @@ td.null {
     animation: none;
   }
 }
+
+.error .link-button {
+  color: inherit;
+  font-size: inherit;
+  font-weight: 600;
+}

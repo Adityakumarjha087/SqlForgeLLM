@@ -63,6 +63,7 @@ export default function Home() {
   const [status, setStatus] = useState<ApiStatus>({ state: "checking" });
   const [databases, setDatabases] = useState<string[]>([]);
   const [dbHint, setDbHint] = useState("");
+  const [dbLoadFailed, setDbLoadFailed] = useState(false);
   const [dbId, setDbId] = useState("");
   const [schema, setSchema] = useState("");
   const [question, setQuestion] = useState("");
@@ -76,9 +77,34 @@ export default function Home() {
   const showThroughput = !(status.state === "online" && status.backend === "mock");
   const [maxQuestionChars, setMaxQuestionChars] = useState(DEFAULT_MAX_QUESTION_CHARS);
 
+  const loadDatabases = useCallback(() => {
+    setError("");
+    fetch(`${API}/databases`)
+      .then(async (r) => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => null);
+          throw new Error(body?.detail ?? `API error ${r.status}`);
+        }
+        return r.json();
+      })
+      .then((d) => {
+        setDatabases(d.databases);
+        setDbHint(d.hint ?? "");
+        setDbLoadFailed(false);
+        if (d.databases.length) setDbId(d.databases[0]);
+      })
+      .catch((e) => {
+        setDbLoadFailed(true);
+        setError(
+          e instanceof TypeError ? `Could not reach the API at ${API}` : `Could not load databases: ${e.message}`,
+        );
+      });
+  }, []);
+
   useEffect(() => {
     if (/Mac|iPhone|iPad/.test(navigator.userAgent)) setShortcut("⌘ ↵");
     setHistory(loadHistory());
+    loadDatabases();
     fetch(`${API}/health`)
       .then((r) => r.json())
       .then((d) => {
@@ -88,15 +114,7 @@ export default function Home() {
         }
       })
       .catch(() => setStatus({ state: "offline" }));
-    fetch(`${API}/databases`)
-      .then((r) => r.json())
-      .then((d) => {
-        setDatabases(d.databases);
-        setDbHint(d.hint ?? "");
-        if (d.databases.length) setDbId(d.databases[0]);
-      })
-      .catch(() => setError(`Could not reach the API at ${API}`));
-  }, []);
+  }, [loadDatabases]);
 
   useEffect(() => {
     if (!dbId) return;
@@ -282,6 +300,14 @@ export default function Home() {
             {error && (
               <p className="error" role="alert">
                 {error}
+                {dbLoadFailed && (
+                  <>
+                    {" "}
+                    <button type="button" className="link-button" onClick={loadDatabases}>
+                      Retry
+                    </button>
+                  </>
+                )}
               </p>
             )}
             {history.length > 0 && (
