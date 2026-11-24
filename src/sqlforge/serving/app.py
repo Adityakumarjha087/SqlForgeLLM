@@ -11,6 +11,7 @@ Backend/model come from configs/serve.yaml (override via SQLFORGE_* env vars,
 e.g. SQLFORGE_BACKEND=mock for frontend development without a model).
 """
 
+import math
 import threading
 import time
 from functools import lru_cache
@@ -81,6 +82,12 @@ class TokenBucket:
             self.state[key] = (tokens - 1.0, now)
             return True
 
+    def retry_after(self, key: str) -> int:
+        """Whole seconds until `key` has a token again (at least 1)."""
+        with self.lock:
+            tokens, _ = self.state.get(key, (self.capacity, 0.0))
+        return max(1, math.ceil((1.0 - tokens) / self.rate))
+
 
 cfg = load_config(REPO_ROOT / "configs" / "serve.yaml", ServeConfig)
 db_root = REPO_ROOT / cfg.db_root
@@ -88,7 +95,13 @@ bucket = TokenBucket(cfg.rate_limit_per_minute)
 _backend: ModelBackend | None = None
 
 app = FastAPI(title="SQLForge", version="0.1.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["Retry-After"],
+)
 
 
 def get_backend() -> ModelBackend:
@@ -112,7 +125,11 @@ async def rate_limit(request: Request, call_next):
     if request.url.path.startswith(("/generate-sql", "/query")):
         client = request.client.host if request.client else "unknown"
         if not bucket.allow(client):
-            return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
+            return JSONResponse(
+                {"detail": "rate limit exceeded"},
+                status_code=429,
+                headers={"Retry-After": str(bucket.retry_after(client))},
+            )
     return await call_next(request)
 
 

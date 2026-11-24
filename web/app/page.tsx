@@ -179,6 +179,10 @@ export default function Home() {
       });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
+        const wait = Number(response.headers.get("Retry-After"));
+        if (response.status === 429 && wait > 0) {
+          throw new Error(`Too many requests. Try again in ${wait} ${wait === 1 ? "second" : "seconds"}.`);
+        }
         throw new Error(body?.detail ?? `API error ${response.status}`);
       }
       setResult({ ...((await response.json()) as QueryResult), dbId });

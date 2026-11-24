@@ -77,6 +77,13 @@ def test_rate_limit_kicks_in(client):
     assert codes[0] == 200
 
 
+def test_rate_limit_response_says_when_to_retry(client):
+    payload = {"question": "How many concerts?", "db_id": "concert_db"}
+    responses = [client.post("/generate-sql", json=payload) for _ in range(8)]
+    limited = next(r for r in responses if r.status_code == 429)
+    assert int(limited.headers["Retry-After"]) >= 1
+
+
 def test_databases_graceful_without_data_dir(client, tmp_path):
     from sqlforge.serving import app as app_module
 
