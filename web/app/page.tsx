@@ -71,6 +71,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [shortcut, setShortcut] = useState("Ctrl ↵");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   // The mock backend returns a canned query, so its tok/s figure says nothing about a real model.
@@ -161,7 +162,9 @@ export default function Home() {
     ? "Generating SQL…"
     : copied
       ? "SQL copied to clipboard."
-      : result
+      : copyFailed
+        ? "Could not copy. Select the SQL and copy it by hand."
+        : result
         ? result.execution_error
           ? "SQL generated, but running it failed."
           : `SQL generated. The query returned ${result.rows.length} ${result.rows.length === 1 ? "row" : "rows"}.`
@@ -178,6 +181,7 @@ export default function Home() {
     setError("");
     setResult(null);
     setCopied(false);
+    setCopyFailed(false);
     try {
       const response = await fetch(`${API}/query`, {
         method: "POST",
@@ -205,10 +209,13 @@ export default function Home() {
     if (!result) return;
     try {
       await navigator.clipboard.writeText(result.sql);
+      setCopyFailed(false);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // Clipboard needs a secure context; the SQL stays selectable by hand.
+      // Clipboard needs a secure context; say so, the SQL stays selectable by hand.
+      setCopyFailed(true);
+      setTimeout(() => setCopyFailed(false), 3000);
     }
   }, [result]);
 
@@ -404,7 +411,7 @@ export default function Home() {
                       <span className="chip">{result.tokens_per_second.toFixed(1)} tok/s</span>
                     ) : null}
                     <button className="btn-ghost" onClick={copySql}>
-                      {copied ? "Copied" : "Copy"}
+                      {copied ? "Copied" : copyFailed ? "Copy failed" : "Copy"}
                     </button>
                   </div>
                 </div>
