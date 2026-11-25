@@ -101,12 +101,12 @@ export default function Home() {
       });
   }, []);
 
-  useEffect(() => {
-    if (/Mac|iPhone|iPad/.test(navigator.userAgent)) setShortcut("⌘ ↵");
-    setHistory(loadHistory());
-    loadDatabases();
+  const loadHealth = useCallback(() => {
     fetch(`${API}/health`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`API error ${r.status}`);
+        return r.json();
+      })
       .then((d) => {
         setStatus({ state: "online", backend: d.backend });
         if (Number.isInteger(d.max_question_chars) && d.max_question_chars > 0) {
@@ -114,7 +114,14 @@ export default function Home() {
         }
       })
       .catch(() => setStatus({ state: "offline" }));
-  }, [loadDatabases]);
+  }, []);
+
+  useEffect(() => {
+    if (/Mac|iPhone|iPad/.test(navigator.userAgent)) setShortcut("⌘ ↵");
+    setHistory(loadHistory());
+    loadDatabases();
+    loadHealth();
+  }, [loadDatabases, loadHealth]);
 
   useEffect(() => {
     if (!dbId) return;
@@ -316,7 +323,14 @@ export default function Home() {
                 {dbLoadFailed && (
                   <>
                     {" "}
-                    <button type="button" className="link-button" onClick={loadDatabases}>
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => {
+                        loadDatabases();
+                        loadHealth();
+                      }}
+                    >
                       Retry
                     </button>
                   </>
