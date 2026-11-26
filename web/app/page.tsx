@@ -7,6 +7,7 @@ import { downloadCsv } from "@/lib/csv";
 import { exampleQuestions } from "@/lib/examples";
 import { highlightSql } from "@/lib/highlight";
 import { addToHistory, loadHistory, saveHistory, type HistoryEntry } from "@/lib/history";
+import { initialDatabase, loadDatabase, saveDatabase } from "@/lib/prefs";
 import { parseSchema } from "@/lib/schema";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -92,7 +93,9 @@ export default function Home() {
         setDatabases(d.databases);
         setDbHint(d.hint ?? "");
         setDbLoadFailed(false);
-        if (d.databases.length) setDbId(d.databases[0]);
+        if (d.databases.length) {
+          setDbId((current) => current || initialDatabase(d.databases, loadDatabase()));
+        }
       })
       .catch((e) => {
         setDbLoadFailed(true);
@@ -250,7 +253,10 @@ export default function Home() {
             id="db-select"
             value={dbId}
             disabled={databases.length === 0}
-            onChange={(e) => setDbId(e.target.value)}
+            onChange={(e) => {
+              setDbId(e.target.value);
+              saveDatabase(e.target.value);
+            }}
           >
             {databases.length === 0 && (
               <option value="">{status.state === "offline" ? "API unreachable" : "Loading databases…"}</option>
@@ -366,7 +372,10 @@ export default function Home() {
                         type="button"
                         title={`Restore this question on ${entry.dbId}`}
                         onClick={() => {
-                          if (databases.includes(entry.dbId)) setDbId(entry.dbId);
+                          if (databases.includes(entry.dbId)) {
+                            setDbId(entry.dbId);
+                            saveDatabase(entry.dbId);
+                          }
                           setQuestion(entry.question);
                           questionRef.current?.focus();
                         }}
