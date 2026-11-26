@@ -20,7 +20,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from sqlforge.config import load_config
 from sqlforge.data.schema import extract_schema
@@ -47,6 +47,14 @@ class ServeConfig(BaseModel):
 class GenerateRequest(BaseModel):
     question: str = Field(min_length=1)
     db_id: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_]+$")
+
+    @field_validator("question")
+    @classmethod
+    def question_not_blank(cls, value: str) -> str:
+        # Whitespace alone would reach the model as an empty prompt.
+        if not value.strip():
+            raise ValueError("question must not be blank")
+        return value
 
 
 class GenerateResponse(BaseModel):

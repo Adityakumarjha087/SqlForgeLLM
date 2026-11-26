@@ -37,6 +37,18 @@ def test_schema_endpoint(client):
     assert "CREATE TABLE" in response.json()["schema"]
 
 
+def test_schema_unknown_db_404(client):
+    response = client.get("/schema/nope")
+    assert response.status_code == 404
+    assert "nope" in response.json()["detail"]
+
+
+@pytest.mark.parametrize("question", ["", "   ", "\n\t "])
+def test_blank_question_rejected(client, question):
+    response = client.post("/query", json={"question": question, "db_id": "concert_db"})
+    assert response.status_code == 422
+
+
 def test_generate_sql(client):
     response = client.post(
         "/generate-sql", json={"question": "How many concerts?", "db_id": "concert_db"}
