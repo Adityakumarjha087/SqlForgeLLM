@@ -415,6 +415,9 @@ export default function Home() {
                 <div className="panel-head">
                   <h2 className="panel-title">Generated SQL</h2>
                   <div className="chips">
+                    <span className="chip" title="Database this query was written for">
+                      {result.dbId}
+                    </span>
                     <span className="chip">{result.latency_ms.toFixed(0)} ms</span>
                     {showThroughput && result.tokens_per_second ? (
                       <span className="chip">{result.tokens_per_second.toFixed(1)} tok/s</span>
