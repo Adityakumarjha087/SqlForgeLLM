@@ -1,3 +1,5 @@
+import sqlite3
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -103,3 +105,23 @@ def test_databases_graceful_without_data_dir(client, tmp_path):
     body = client.get("/databases").json()
     assert body["databases"] == []
     assert "hint" in body
+
+
+def test_query_reports_unsafe_generated_sql_without_running_it(client, tiny_db):
+    from sqlforge.serving import app as app_module
+    from sqlforge.serving.backends import Generation
+
+    class DeletingBackend:
+        def generate(self, schema, question):
+            return Generation(sql="DELETE FROM concert", completion_tokens=3)
+
+    app_module._backend = DeletingBackend()
+    response = client.post("/query", json={"question": "Remove everything", "db_id": "concert_db"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["sql"] == "DELETE FROM concert"
+    assert body["execution_error"]
+    assert body["rows"] == []
+    # The sandbox refused it, so the data is untouched.
+    with sqlite3.connect(tiny_db) as conn:
+        assert conn.execute("SELECT count(*) FROM concert").fetchone() == (3,)
