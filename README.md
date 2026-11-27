@@ -53,8 +53,8 @@ A Next.js page over the API (`web/`). The sidebar browses the selected database'
 schema — tables, column types, primary keys, and foreign keys that jump to the table
 they reference — with a filter and a DDL tab showing exactly the text the model is
 prompted with. Example questions are generated from that schema, a counter enforces
-the API's 500-character cap, and recent questions are kept per browser. Results show
-the highlighted SQL with latency, the rows (long values clipped, full text on hover)
+the API's question-length cap (read from `/health`; 500 by default), and recent
+questions are kept per browser. Results show the highlighted SQL with latency, the rows (long values clipped, full text on hover)
 and a CSV download that guards against spreadsheet formula injection. It follows the
 system light/dark setting or a manual toggle, meets WCAG AA contrast, announces
 progress to screen readers, and works at phone width.
@@ -67,7 +67,7 @@ Everything is scripted; GPU steps run on a **free Colab T4** via the thin notebo
 ```bash
 # Local setup (uv: https://docs.astral.sh/uv/)
 uv sync                                     # light core (no torch)
-uv run pytest                               # 74 tests, all offline
+uv run pytest                               # 85 tests, all offline
 uv run python scripts/download_spider.py    # 205MB official spider_data.zip
 uv run python scripts/build_dataset.py      # filters + splits -> data/processed/
 
