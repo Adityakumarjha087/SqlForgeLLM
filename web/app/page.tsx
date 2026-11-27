@@ -67,6 +67,8 @@ export default function Home() {
   const [dbLoadFailed, setDbLoadFailed] = useState(false);
   const [dbId, setDbId] = useState("");
   const [schema, setSchema] = useState("");
+  const [schemaError, setSchemaError] = useState("");
+  const [schemaAttempt, setSchemaAttempt] = useState(0);
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<ShownResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -130,6 +132,7 @@ export default function Home() {
   useEffect(() => {
     if (!dbId) return;
     setSchema("");
+    setSchemaError("");
     // Ignore a slow response for a database the picker has already moved off.
     let stale = false;
     fetch(`${API}/schema/${dbId}`)
@@ -144,12 +147,12 @@ export default function Home() {
         if (!stale) setSchema(d.schema);
       })
       .catch((e) => {
-        if (!stale) setSchema(`(failed to load schema: ${e instanceof Error ? e.message : e})`);
+        if (!stale) setSchemaError(e instanceof Error ? e.message : String(e));
       });
     return () => {
       stale = true;
     };
-  }, [dbId]);
+  }, [dbId, schemaAttempt]);
 
   const questionRef = useRef<HTMLTextAreaElement>(null);
   const resultRef = useRef<HTMLElement>(null);
@@ -269,7 +272,16 @@ export default function Home() {
           </select>
           {dbHint && <p className="hint">{dbHint}</p>}
           <h2 className="panel-title spaced">Schema</h2>
-          {dbId && <SchemaBrowser schema={schema} />}
+          {dbId && schemaError ? (
+            <p className="error" role="alert">
+              Could not load the schema: {schemaError}{" "}
+              <button type="button" className="link-button" onClick={() => setSchemaAttempt((n) => n + 1)}>
+                Retry
+              </button>
+            </p>
+          ) : (
+            dbId && <SchemaBrowser schema={schema} />
+          )}
         </aside>
 
         <main className="workspace" aria-busy={loading}>
