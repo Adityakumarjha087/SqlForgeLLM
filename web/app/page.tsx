@@ -335,6 +335,18 @@ export default function Home() {
                 {questionLength}/{maxQuestionChars}
                 {tooLong && " · too long"}
               </span>
+              {question && (
+                <button
+                  type="button"
+                  className="link-button clear-question"
+                  onClick={() => {
+                    setQuestion("");
+                    questionRef.current?.focus();
+                  }}
+                >
+                  Clear
+                </button>
+              )}
               <button
                 className="btn-primary"
                 onClick={ask}

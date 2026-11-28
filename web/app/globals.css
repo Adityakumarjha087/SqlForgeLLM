@@ -380,6 +380,10 @@ a:focus-visible,
 .link-button:hover {
   color: var(--text);
 }
+/* A larger tap target than the inline links, for the question box. */
+.clear-question {
+  padding: 8px 4px;
+}
 .history ul {
   list-style: none;
   margin: 0;
