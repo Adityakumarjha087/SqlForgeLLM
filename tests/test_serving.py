@@ -49,6 +49,10 @@ def test_schema_unknown_db_404(client):
 def test_blank_question_rejected(client, question):
     response = client.post("/query", json={"question": question, "db_id": "concert_db"})
     assert response.status_code == 422
+    # The frontend turns this list of {"msg": ...} entries into one message.
+    detail = response.json()["detail"]
+    assert isinstance(detail, list)
+    assert isinstance(detail[0]["msg"], str) and detail[0]["msg"]
 
 
 def test_generate_sql(client):

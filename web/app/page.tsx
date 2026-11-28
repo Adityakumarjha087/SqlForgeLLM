@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SchemaBrowser } from "@/components/schema-browser";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { apiErrorMessage } from "@/lib/api-error";
 import { downloadCsv } from "@/lib/csv";
 import { exampleQuestions } from "@/lib/examples";
 import { highlightSql } from "@/lib/highlight";
@@ -87,7 +88,7 @@ export default function Home() {
       .then(async (r) => {
         if (!r.ok) {
           const body = await r.json().catch(() => null);
-          throw new Error(body?.detail ?? `API error ${r.status}`);
+          throw new Error(apiErrorMessage(body, r.status));
         }
         return r.json();
       })
@@ -139,7 +140,7 @@ export default function Home() {
       .then(async (r) => {
         if (!r.ok) {
           const body = await r.json().catch(() => null);
-          throw new Error(body?.detail ?? `API error ${r.status}`);
+          throw new Error(apiErrorMessage(body, r.status));
         }
         return r.json();
       })
@@ -200,7 +201,7 @@ export default function Home() {
         if (response.status === 429 && wait > 0) {
           throw new Error(`Too many requests. Try again in ${wait} ${wait === 1 ? "second" : "seconds"}.`);
         }
-        throw new Error(body?.detail ?? `API error ${response.status}`);
+        throw new Error(apiErrorMessage(body, response.status));
       }
       setResult({ ...((await response.json()) as QueryResult), dbId });
       setHistory((h) => addToHistory(h, { dbId, question: question.trim() }));
